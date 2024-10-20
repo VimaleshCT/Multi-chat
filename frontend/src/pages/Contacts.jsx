@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../components/modal"; // Import the modal component
 import axios from "axios"; // Import axios
+import { ToastContainer, toast } from "react-toastify"; // Import Toastify
+import "react-toastify/dist/ReactToastify.css"; // Import CSS for Toastify
 
 const Contacts = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [editingContact, setEditingContact] = useState(null); // For editing an existing contact
+  const [file, setFile] = useState(null); // To store the uploaded file
+  const [uploading, setUploading] = useState(false); // To indicate file upload in progress
 
   // Fetch contacts from backend
   useEffect(() => {
@@ -60,9 +64,11 @@ const Contacts = () => {
       .delete(`http://localhost:5000/api/contacts/${id}`)
       .then(() => {
         setContacts(contacts.filter((contact) => contact._id !== id)); // Remove from UI
+        toast.success("Contact deleted successfully");
       })
       .catch((error) => {
         console.error("Error deleting contact:", error);
+        toast.error("Failed to delete contact");
       });
   };
 
@@ -72,8 +78,77 @@ const Contacts = () => {
     setModalOpen(true); // Open the modal for editing
   };
 
+  // Handle file selection
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  // Handle CSV upload
+  const handleUploadCsv = () => {
+    if (!file) {
+      toast.error("Please select a file before uploading.");
+      return;
+    }
+
+    setUploading(true); // Set uploading state
+    const formData = new FormData();
+    formData.append("file", file);
+
+    console.log("Uploading file:", file); // Debugging: check if file is being uploaded
+
+    axios
+      .post("http://localhost:5000/api/upload/csv", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data", // Ensure correct Content-Type
+        },
+      })
+      .then((response) => {
+        console.log("CSV upload response:", response.data); // Debugging: check response
+        toast.success("CSV uploaded successfully");
+        setFile(null); // Clear the file input after upload
+        setUploading(false); // Reset uploading state
+      })
+      .catch((error) => {
+        console.error("Error uploading CSV:", error); // Log error details
+        const errorMessage =
+          error.response?.data?.error ||
+          "Unknown error occurred while uploading CSV";
+        toast.error(`Error uploading CSV: ${errorMessage}`);
+        setUploading(false); // Reset uploading state
+      });
+  };
+
+  // Handle Excel upload
+  const handleUploadExcel = () => {
+    if (!file) return;
+    setUploading(true); // Set uploading state
+    const formData = new FormData();
+    formData.append("file", file);
+
+    axios
+      .post("http://localhost:5000/api/upload/excel", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data", // Ensure correct Content-Type
+        },
+      })
+      .then((response) => {
+        toast.success("Excel uploaded successfully");
+        setFile(null); // Clear the file input after upload
+        setUploading(false); // Reset uploading state
+      })
+      .catch((error) => {
+        console.error("Error uploading Excel:", error);
+        toast.error(
+          "Error uploading Excel: " +
+            (error.response?.data?.error || "Unknown error")
+        );
+        setUploading(false); // Reset uploading state
+      });
+  };
+
   return (
     <div className="p-8">
+      <ToastContainer /> {/* Add Toastr container */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Contacts</h1>
         <div>
@@ -86,12 +161,27 @@ const Contacts = () => {
           >
             Create New Contact
           </button>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 shadow-sm">
-            Import
+
+          {/* File Input for CSV/Excel */}
+          <input type="file" onChange={handleFileChange} />
+
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 shadow-sm ml-2"
+            onClick={handleUploadCsv}
+            disabled={!file || uploading} // Disable button if no file is selected or uploading
+          >
+            {uploading ? "Uploading..." : "Upload CSV"}
+          </button>
+
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 shadow-sm ml-2"
+            onClick={handleUploadExcel}
+            disabled={!file || uploading} // Disable button if no file is selected or uploading
+          >
+            {uploading ? "Uploading..." : "Upload Excel"}
           </button>
         </div>
       </div>
-
       {/* Modal for creating/editing a contact */}
       <Modal
         isOpen={isModalOpen}
@@ -102,7 +192,6 @@ const Contacts = () => {
         onSave={handleSaveContact} // Save new or updated contact
         editingContact={editingContact} // Pass the editing contact data
       />
-
       {/* Contact List */}
       <div className="mt-6">
         <h2 className="text-lg font-bold mb-4">Contact List</h2>
