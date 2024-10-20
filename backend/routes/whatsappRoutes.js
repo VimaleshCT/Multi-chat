@@ -1,13 +1,10 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const contactController = require("../controllers/contactController");
-const whatsappController = require("../controllers/whatsappController");
-const multer = require("multer");
-const upload = multer({ dest: "uploads/" });
 
-router.post("/add", contactController.addContact);
-router.get("/all", contactController.getContacts);
-router.post("/import", upload.single("file"), contactController.importContacts);
-router.post("/whatsapp/send", whatsappController.sendWhatsAppMessage);
+// Import the whatsappController (or the appropriate controller)
+const whatsappController = require('../controllers/whatsappController'); // Ensure the path is correct
+
+// Define the POST route and ensure the callback is correct
+router.post('/whatsapp', whatsappController.handlePostRequest);
 
 module.exports = router;

@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 
-const Modal = ({ isOpen, onClose, onSave }) => {
+const Modal = ({ isOpen, onClose, onSave, editingContact }) => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    gender: '',
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+    gender: "",
     consent: false,
   });
+
+  // Update form data when editingContact changes
+  useEffect(() => {
+    if (editingContact) {
+      setFormData({
+        firstName: editingContact.firstName,
+        lastName: editingContact.lastName,
+        phone: editingContact.phone,
+        email: editingContact.email,
+        gender: editingContact.gender,
+        consent: editingContact.consent,
+      });
+    }
+  }, [editingContact]);
 
   if (!isOpen) return null;
 
@@ -16,7 +30,7 @@ const Modal = ({ isOpen, onClose, onSave }) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -28,7 +42,9 @@ const Modal = ({ isOpen, onClose, onSave }) => {
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
-        <h2 className="text-xl font-bold mb-4">Create New Contact</h2>
+        <h2 className="text-xl font-bold mb-4">
+          {editingContact ? "Edit Contact" : "Create New Contact"}
+        </h2>
         <form>
           <div className="mb-3">
             <label className="block text-sm">First Name</label>
@@ -92,14 +108,23 @@ const Modal = ({ isOpen, onClose, onSave }) => {
               className="mr-2"
             />
             <label className="text-sm">
-              I confirm consent to send messages in compliance with applicable laws.
+              I confirm consent to send messages in compliance with applicable
+              laws.
             </label>
           </div>
         </form>
         <div className="flex justify-end space-x-2">
-          <button onClick={onClose} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Cancel</button>
-          <button onClick={handleSave} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            Create
+          <button
+            onClick={onClose}
+            className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            {editingContact ? "Update" : "Create"}
           </button>
         </div>
       </div>
