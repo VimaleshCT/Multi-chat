@@ -94,8 +94,6 @@ const Contacts = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("Uploading file:", file); // Debugging: check if file is being uploaded
-
     axios
       .post("http://localhost:5000/api/upload/csv", formData, {
         headers: {
@@ -103,7 +101,6 @@ const Contacts = () => {
         },
       })
       .then((response) => {
-        console.log("CSV upload response:", response.data); // Debugging: check response
         toast.success("CSV uploaded successfully");
         setFile(null); // Clear the file input after upload
         setUploading(false); // Reset uploading state
@@ -157,7 +154,7 @@ const Contacts = () => {
             onClick={() => {
               setEditingContact(null); // Clear any editing state
               setModalOpen(true);
-            }} // Open modal on button click
+            }}
           >
             Create New Contact
           </button>

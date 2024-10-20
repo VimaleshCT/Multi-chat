@@ -3,7 +3,6 @@ const multer = require("multer");
 const csv = require("csv-parser");
 const XLSX = require("xlsx");
 const fs = require("fs");
-const path = require("path");
 const Contact = require("../models/contactModel");
 
 const router = express.Router();
@@ -22,56 +21,56 @@ const deleteFile = (filePath) => {
   });
 };
 
+// Common function to validate and insert data
+const processContacts = async (contacts, res, filePath) => {
+  try {
+    await Contact.insertMany(contacts);
+    res.status(200).json({ message: "File uploaded and contacts saved." });
+  } catch (err) {
+    console.error("Failed to save contacts to MongoDB:", err);
+    res.status(500).json({ error: "Failed to save contacts from file." });
+  } finally {
+    deleteFile(filePath); // Clean up file after processing
+  }
+};
+
 // Handle CSV upload and parse
 router.post("/csv", upload.single("file"), (req, res) => {
   const results = [];
   const filePath = req.file.path; // Store file path
 
-  console.log("File uploaded:", req.file); // Log file details for debugging
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on("data", (data) => {
+      const mappedData = {
+        firstName: data["First Name"], // Mapping CSV field to backend field
+        lastName: data["Last Name"],
+        phone: data["Phone"],
+        email: data["Email"],
+        gender: data["Gender"] || "Not specified", // Set default if missing
+        consent: data["Consent"] === "TRUE", // Assuming consent is a boolean
+      };
 
-  try {
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on("data", (data) => {
-        console.log("Row data from CSV:", data); // Debugging: log CSV row data
+      if (
+        !mappedData.firstName ||
+        !mappedData.lastName ||
+        !mappedData.phone ||
+        !mappedData.email
+      ) {
+        console.error("Missing required fields in CSV row:", data);
+        return; // Skip this row
+      }
 
-        // Validate the presence of required fields
-        if (!data.firstName || !data.lastName || !data.phone || !data.email) {
-          throw new Error("Missing required fields in CSV");
-        }
-
-        // Map the fields from the CSV to the contact model
-        results.push({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          phone: data.phone,
-          email: data.email,
-          gender: data.gender || "Not specified", // Set default if missing
-          consent: data.consent === "true", // Assuming consent is a boolean
-        });
-      })
-      .on("end", async () => {
-        try {
-          console.log("Inserting data into MongoDB:", results); // Debugging: log data being inserted
-          await Contact.insertMany(results); // Save the contacts to MongoDB
-          res.status(200).json({ message: "CSV file uploaded and contacts saved." });
-        } catch (err) {
-          console.error("Failed to save contacts to MongoDB:", err);
-          res.status(500).json({ error: "Failed to save contacts from CSV." });
-        } finally {
-          deleteFile(filePath); // Clean up file after processing
-        }
-      })
-      .on("error", (err) => {
-        console.error("Error parsing CSV file:", err);
-        res.status(500).json({ error: "Failed to parse CSV file." });
-        deleteFile(filePath); // Ensure file is deleted on error
-      });
-  } catch (error) {
-    console.error("File processing error:", error);
-    res.status(500).json({ error: "Failed to process the uploaded file." });
-    deleteFile(filePath); // Clean up file after processing
-  }
+      results.push(mappedData);
+    })
+    .on("end", async () => {
+      await processContacts(results, res, filePath); // Process contacts
+    })
+    .on("error", (err) => {
+      console.error("Error parsing CSV file:", err);
+      res.status(500).json({ error: "Failed to parse CSV file." });
+      deleteFile(filePath); // Ensure file is deleted on error
+    });
 });
 
 // Handle Excel upload and parse
@@ -83,36 +82,36 @@ router.post("/excel", upload.single("file"), (req, res) => {
     const sheet_name_list = workbook.SheetNames;
     const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
 
-    const formattedData = data.map((entry) => {
-      // Validate required fields
-      if (!entry.firstName || !entry.lastName || !entry.phone || !entry.email) {
-        throw new Error("Missing required fields in Excel");
-      }
+    const formattedData = data
+      .map((entry) => {
+        const mappedData = {
+          firstName: entry["First Name"], // Mapping Excel field to backend field
+          lastName: entry["Last Name"],
+          phone: entry["Phone"],
+          email: entry["Email"],
+          gender: entry["Gender"] || "Not specified", // Set default if missing
+          consent: entry["Consent"] === "TRUE", // Assuming consent is a boolean
+        };
 
-      return {
-        firstName: entry.firstName,
-        lastName: entry.lastName,
-        phone: entry.phone,
-        email: entry.email,
-        gender: entry.gender || "Not specified", // Set default if missing
-        consent: entry.consent === "true", // Assuming consent is a boolean
-      };
-    });
+        // Validate required fields
+        if (
+          !mappedData.firstName ||
+          !mappedData.lastName ||
+          !mappedData.phone ||
+          !mappedData.email
+        ) {
+          console.error("Missing required fields in Excel row:", entry);
+          return null; // Skip this row
+        }
 
-    Contact.insertMany(formattedData)
-      .then(() => {
-        res.status(200).json({ message: "Excel file uploaded and contacts saved." });
+        return mappedData;
       })
-      .catch((err) => {
-        console.error("Failed to save contacts to MongoDB:", err);
-        res.status(500).json({ error: "Failed to save contacts from Excel file." });
-      })
-      .finally(() => {
-        deleteFile(filePath); // Clean up file after processing
-      });
+      .filter(Boolean); // Filter out any null rows
+
+    processContacts(formattedData, res, filePath); // Process contacts
   } catch (err) {
-    console.error("Excel parsing error:", err);
-    res.status(500).json({ error: "Failed to parse Excel file." });
+    console.error("Error processing Excel file:", err);
+    res.status(500).json({ error: "Failed to process Excel file." });
     deleteFile(filePath); // Ensure file is deleted on error
   }
 });
