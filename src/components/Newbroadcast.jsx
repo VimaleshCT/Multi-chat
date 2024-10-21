@@ -2,10 +2,23 @@ import React, { useState } from 'react';
 
 const Newbroadcast = () => {
   const [contentBlocks, setContentBlocks] = useState([]); // To manage added blocks
+  const [buttonBlocks, setButtonBlocks] = useState([]); // To manage buttons
+
+  const [buttonText, setButtonText] = useState(''); // Button Text State
+  const [buttonLink, setButtonLink] = useState(''); // Button Link State
 
   // Handle adding different types of content blocks
   const handleAddBlock = (type) => {
     setContentBlocks([...contentBlocks, type]);
+  };
+
+  // Handle Add Button Click
+  const handleAddButtonClick = () => {
+    if (buttonText && buttonLink) {
+      setButtonBlocks([...buttonBlocks, { text: buttonText, link: buttonLink }]);
+      setButtonText(''); // Clear after adding
+      setButtonLink(''); // Clear after adding
+    }
   };
 
   return (
@@ -59,9 +72,47 @@ const Newbroadcast = () => {
                   className="w-full border-none focus:outline-none"
                   rows="3"
                 ></textarea>
-                <button className="mt-2 text-blue-500">+ Add Button</button>
+                <button className="mt-2 text-blue-500" onClick={() => handleAddBlock('button')}>
+                  + Add Button
+                </button>
+
+                {/* If button block is clicked */}
+                {contentBlocks.includes('button') && (
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      placeholder="Enter Button Text"
+                      className="p-2 border border-gray-300 rounded-md w-full mb-2"
+                      value={buttonText}
+                      onChange={(e) => setButtonText(e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Enter Button Link"
+                      className="p-2 border border-gray-300 rounded-md w-full mb-2"
+                      value={buttonLink}
+                      onChange={(e) => setButtonLink(e.target.value)}
+                    />
+                    <button
+                      className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                      onClick={handleAddButtonClick}
+                    >
+                      Add Button
+                    </button>
+                  </div>
+                )}
+
+                {/* Display Added Buttons */}
+                {buttonBlocks.map((btn, i) => (
+                  <div key={i} className="mt-2">
+                    <a href={btn.link} target="_blank" className="text-blue-500">
+                      {btn.text}
+                    </a>
+                  </div>
+                ))}
               </div>
             )}
+
             {block === 'image' && (
               <div className="border p-4 border-dashed border-gray-300 rounded-md">
                 <div className="text-center p-4 bg-gray-100 border rounded-lg">
@@ -70,6 +121,7 @@ const Newbroadcast = () => {
                 <button className="mt-2 text-blue-500">Upload Image</button>
               </div>
             )}
+
             {block === 'gallery' && (
               <div className="border p-4 border-dashed border-gray-300 rounded-md">
                 <div className="text-center p-4 bg-gray-100 border rounded-lg">
@@ -80,6 +132,30 @@ const Newbroadcast = () => {
             )}
           </div>
         ))}
+
+        {/* Preview WhatsApp-like message */}
+        <div className="mt-6">
+          <h3 className="text-lg font-bold mb-2">Preview</h3>
+          <div className="border rounded-lg p-4 bg-gray-100">
+            <div className="flex space-x-2 items-center">
+              <img
+                src="https://randomuser.me/api/portraits/men/32.jpg"
+                alt="profile"
+                className="w-8 h-8 rounded-full"
+              />
+              <div className="p-2 bg-white border rounded-lg">
+                <p>Sample WhatsApp message:</p>
+                {buttonBlocks.map((btn, i) => (
+                  <div key={i} className="mt-2">
+                    <a href={btn.link} className="text-blue-500 underline">
+                      {btn.text}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
