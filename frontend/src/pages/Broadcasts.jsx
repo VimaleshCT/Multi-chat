@@ -1,81 +1,78 @@
-import React, { useState } from 'react';
-import Newbroadcast from '../components/Newbroadcast'; // Import the new component
+import React, { useState } from "react";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Broadcasts = () => {
-  const [isNewBroadcast, setIsNewBroadcast] = useState(false);
+  const [isBroadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [broadcastMessage, setBroadcastMessage] = useState("");
 
-  // Sample data for drafts
-  const [drafts] = useState([
-    { type: 'Content', name: 'Content', lastEdit: '6 Sep 2024, 11:40 (UTC +05:30)' },
-    { type: 'Content', name: 'Content', lastEdit: '6 Sep 2024, 11:37 (UTC +05:30)' },
-    { type: 'Content', name: 'Content', lastEdit: '3 Sep 2024, 22:14 (UTC +05:30)' },
-    { type: 'Content', name: 'Content', lastEdit: '30 Aug 2024, 16:28 (UTC +05:30)' },
-  ]);
+  const handleBroadcastModalOpen = () => {
+    setBroadcastModalOpen(true);
+  };
 
-  // Placeholder for history section
-  const [history] = useState([]);
+  const handleSendBroadcast = async () => {
+    if (!broadcastMessage) {
+      toast.error("Please enter a message to broadcast.");
+      return;
+    }
 
-  // Handle New Broadcast
-  const handleNewBroadcastClick = () => {
-    setIsNewBroadcast(true); // Show the new broadcast UI when button is clicked
+    try {
+      const response = await axios.post("http://localhost:5000/api/broadcast", {
+        message: broadcastMessage, // Ensure the correct message variable is sent
+      });
+
+      toast.success(response.data.message);
+      setBroadcastModalOpen(false);
+      setBroadcastMessage("");
+    } catch (error) {
+      console.error("Error broadcasting message:", error);
+      const errorMessage =
+        error.response?.data?.error || "Unknown error occurred.";
+      toast.error(`Failed to broadcast message: ${errorMessage}`);
+    }
   };
 
   return (
     <div className="p-8">
-      {!isNewBroadcast ? (
-        // Drafts Page
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Broadcasts</h1>
-            <div className="flex space-x-2">
-              <button className="bg-white text-gray-600 border border-gray-300 px-4 py-2 rounded-md shadow-sm hover:bg-gray-100">
-                Broadcast From Automation
+      <ToastContainer />
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Broadcasts</h1>
+        <button
+          className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 shadow-sm"
+          onClick={handleBroadcastModalOpen}
+        >
+          Send Broadcast
+        </button>
+      </div>
+
+      {isBroadcastModalOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Send Broadcast Message</h2>
+            <textarea
+              rows="4"
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              className="border border-gray-300 rounded p-2 w-full mb-4"
+              placeholder="Enter your broadcast message here..."
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setBroadcastModalOpen(false)}
+                className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+              >
+                Cancel
               </button>
               <button
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 shadow-sm"
-                onClick={handleNewBroadcastClick}
+                onClick={handleSendBroadcast}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
-                New Broadcast
+                Send
               </button>
             </div>
           </div>
-
-          <div className="mb-6">
-            <h2 className="text-lg font-bold mb-4">Drafts</h2>
-            <div className="overflow-auto">
-              <table className="min-w-full bg-white border border-gray-200 shadow-sm">
-                <thead className="bg-gray-100 border-b">
-                  <tr>
-                    <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Type</th>
-                    <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Name</th>
-                    <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Last Edit</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {drafts.map((draft, index) => (
-                    <tr key={index}>
-                      <td className="py-4 px-6 text-sm text-gray-700">{draft.type}</td>
-                      <td className="py-4 px-6 text-sm text-gray-700">{draft.name}</td>
-                      <td className="py-4 px-6 text-sm text-gray-700">{draft.lastEdit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-lg font-bold mb-4">History</h2>
-            {history.length === 0 ? (
-              <div className="py-4 text-center text-gray-500">Nothing is here</div>
-            ) : (
-              <div> {/* History table content goes here */} </div>
-            )}
-          </div>
-        </>
-      ) : (
-        // Render the new component when creating a new broadcast
-        <Newbroadcast />
+        </div>
       )}
     </div>
   );
