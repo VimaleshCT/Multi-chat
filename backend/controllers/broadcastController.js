@@ -1,18 +1,48 @@
-const Contact = require("../models/contactModel");
+const Contact = require("../models/contactModel"); // Contact model
+const BroadcastHistory = require("../models/broadcastModel"); // Broadcast history model
 const axios = require("axios");
 
-const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
-const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+// Function to send message to WhatsApp using the API
+const sendWhatsAppMessage = async (phoneNumber, message) => {
+  const url = `https://graph.facebook.com/v12.0/${process.env.PHONE_NUMBER_ID}/messages`;
+  const data = {
+    messaging_product: "whatsapp",
+    to: phoneNumber,
+    text: { body: message },
+  };
+
+  const config = {
+    headers: {
+      Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+  };
+
+  try {
+    const response = await axios.post(url, data, config);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error(
+      "Error sending WhatsApp message:",
+      error.response?.data || error.message
+    );
+    return { success: false, error: error.response?.data || error.message };
+  }
+};
 
 exports.broadcastMessage = async (req, res) => {
-  const { message } = req.body || {};
+  const { message } = req.body;
 
+  // Ensure message content is provided
   if (!message) {
     return res.status(400).json({ error: "Message content is required" });
   }
 
   try {
+    // Retrieve all contacts from the Contact model
     const contacts = await Contact.find();
+
+    // If no contacts exist, return error
     if (contacts.length === 0) {
       return res
         .status(404)
@@ -22,66 +52,52 @@ exports.broadcastMessage = async (req, res) => {
     const failedContacts = [];
     const successfulContacts = [];
 
+    // Iterate over contacts and send message
     for (const contact of contacts) {
-      try {
-        const payload = {
-          messaging_product: "whatsapp",
-          to: contact.phone,
-          type: "text",
-          text: { body: message },
-        };
-
-        console.log("Sending payload:", payload);
-
-        const response = await axios.post(
-          `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        console.log("Response data:", response.data);
-
-        if (response.data.messages) {
-          successfulContacts.push(contact.phone);
-        } else {
-          throw new Error("Failed to send message");
-        }
-      } catch (err) {
-        console.error(
-          `Failed to send message to ${contact.phone}: ${
-            err.response?.data?.message || err.message
-          }`
-        );
-        failedContacts.push({
-          contact: contact.phone,
-          error: err.response?.data?.message || err.message,
-        });
+      const { success, error } = await sendWhatsAppMessage(
+        contact.phone,
+        message
+      );
+      if (success) {
+        successfulContacts.push(contact.phone);
+      } else {
+        failedContacts.push({ phone: contact.phone, error });
       }
     }
 
-    if (failedContacts.length > 0) {
-      return res.status(206).json({
-        message: "Message broadcast completed with some failures",
-        successfulContacts,
-        failedContacts,
-      });
-    }
+    const status = failedContacts.length > 0 ? "Partial Success" : "Sent";
 
-    return res.status(200).json({
-      message: "Message broadcasted successfully to all contacts",
-      successfulContacts,
+    // Save broadcast history in the database
+    const broadcastHistory = await BroadcastHistory.create({
+      message,
+      status,
+      timestamp: new Date(),
+      contacts: contacts.map((contact) => ({
+        name: contact.name,
+        phone: contact.phone,
+        status: successfulContacts.includes(contact.phone)
+          ? "Success"
+          : "Failed",
+        error:
+          failedContacts.find((fc) => fc.phone === contact.phone)?.error || "",
+      })),
     });
-  } catch (err) {
+
+    res.status(200).json({
+      message:
+        failedContacts.length > 0
+          ? "Broadcast completed with some failures"
+          : "Broadcast sent to all contacts",
+      successfulContacts,
+      failedContacts,
+      broadcastId: broadcastHistory._id,
+    });
+  } catch (error) {
     console.error(
       "Error broadcasting message:",
-      err.message || "Unknown error"
+      error.message || "Unknown error"
     );
-    return res.status(500).json({
+    res.status(500).json({
       error: "Failed to broadcast message due to an unexpected error",
     });
   }

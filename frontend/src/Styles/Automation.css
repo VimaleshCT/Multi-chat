@@ -1,0 +1,124 @@
+.automation-container {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.automation-list .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.automation-list .automation-cards {
+  margin-top: 20px;
+}
+
+.automation-card {
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.automation-card:hover {
+  transform: translateY(-5px);
+}
+
+.search input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.template-selection-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.template-card {
+  background-color: #f9f9f9;
+  padding: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.template-card:hover {
+  background-color: #eef0f5;
+}
+
+.text-xl {
+  font-size: 1.5rem;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.text-lg {
+  font-size: 1.25rem;
+}
+
+.text-gray-600 {
+  color: #4b4b4b;
+}
+
+.flow-builder-container {
+  padding: 20px;
+}
+
+.flow-builder-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.flow-builder-options {
+  margin-bottom: 20px;
+}
+
+.trigger-action {
+  margin-bottom: 10px;
+}
+
+.trigger-action-select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 5px;
+}
+
+.action-textarea {
+  width: 100%;
+  height: 100px;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.preview-button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.preview-button:hover {
+  background-color: #0056b3;
+}
+
+.preview-section {
+  margin-top: 30px;
+}
